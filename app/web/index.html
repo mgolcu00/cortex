@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confluence Q&A</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #242424;
+            --bg-hover: #2a2a2a;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --accent-muted: rgba(99, 102, 241, 0.15);
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --border: #27272a;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .logo-text {
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .new-chat-btn {
+            width: 100%;
+            padding: 10px 16px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.15s ease;
+        }
+
+        .new-chat-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .sessions-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .session-item {
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            margin-bottom: 2px;
+            transition: background 0.15s ease;
+        }
+
+        .session-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .session-item.active {
+            background: var(--accent-muted);
+        }
+
+        .session-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .session-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .sidebar-footer {
+            padding: 12px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .sidebar-btn {
+            padding: 8px 12px;
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s ease;
+        }
+
+        .sidebar-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--text-muted);
+        }
+
+        .sidebar-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Main */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .chat-header {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-secondary);
+        }
+
+        .chat-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .header-stats {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stat-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .stat-dot.warning { background: var(--warning); }
+        .stat-dot.error { background: var(--error); }
+
+        /* Messages */
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            max-width: 720px;
+            margin: 0 auto 24px;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .avatar.user {
+            background: var(--accent);
+        }
+
+        .avatar.assistant {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .sender-name {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .message-body {
+            padding: 14px 16px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .message.user .message-body {
+            background: var(--accent);
+            margin-left: 38px;
+        }
+
+        .message.assistant .message-body {
+            background: var(--bg-tertiary);
+            margin-left: 38px;
+            border: 1px solid var(--border);
+        }
+
+        /* Tool calls display */
+        .tools-used {
+            margin-bottom: 12px;
+            padding: 10px 12px;
+            background: rgba(245, 158, 11, 0.1);
+            border-radius: var(--radius-sm);
+            border-left: 3px solid var(--warning);
+        }
+
+        .tools-title {
+            font-size: 11px;
+            color: var(--warning);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .tool-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            padding: 3px 0;
+        }
+
+        .tool-item svg {
+            width: 12px;
+            height: 12px;
+            color: var(--success);
+        }
+
+        /* Message content formatting */
+        .message-content {
+            color: var(--text-primary);
+        }
+
+        .message-content p {
+            margin-bottom: 12px;
+        }
+
+        .message-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .message-content strong {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .message-content a {
+            color: var(--accent-hover);
+            text-decoration: none;
+        }
+
+        .message-content a:hover {
+            text-decoration: underline;
+        }
+
+        .message-content ul, .message-content ol {
+            margin: 8px 0 8px 20px;
+        }
+
+        .message-content li {
+            margin-bottom: 4px;
+        }
+
+        .message-content code {
+            background: rgba(255,255,255,0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 13px;
+        }
+
+        .message-content pre {
+            background: var(--bg-primary);
+            padding: 12px 14px;
+            border-radius: var(--radius-sm);
+            overflow-x: auto;
+            margin: 12px 0;
+            border: 1px solid var(--border);
+        }
+
+        .message-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .message-content h1, .message-content h2, .message-content h3 {
+            margin: 16px 0 8px;
+            font-weight: 600;
+        }
+
+        .message-content h1 { font-size: 18px; }
+        .message-content h2 { font-size: 16px; }
+        .message-content h3 { font-size: 14px; }
+
+        .message-content hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 16px 0;
+        }
+
+        .message-content blockquote {
+            border-left: 3px solid var(--accent);
+            padding-left: 12px;
+            margin: 12px 0;
+            color: var(--text-secondary);
+        }
+
+        /* Sources */
+        .sources {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .sources-title {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .source-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: var(--accent-muted);
+            border-radius: 20px;
+            color: var(--accent-hover);
+            font-size: 12px;
+            text-decoration: none;
+            margin: 2px 4px 2px 0;
+            transition: all 0.15s ease;
+        }
+
+        .source-link:hover {
+            background: rgba(99, 102, 241, 0.25);
+        }
+
+        /* Stats badge */
+        .response-stats {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .stat-badge {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        /* Loading */
+        .loading-message {
+            max-width: 720px;
+            margin: 0 auto 24px;
+        }
+
+        .loading-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            margin-left: 38px;
+        }
+
+        .loading-spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Empty state */
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .empty-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        .empty-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .empty-desc {
+            color: var(--text-secondary);
+            max-width: 360px;
+            margin-bottom: 24px;
+        }
+
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .suggestion {
+            padding: 8px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .suggestion:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+            background: var(--accent-muted);
+        }
+
+        /* Input */
+        .input-area {
+            padding: 16px 20px 20px;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+        }
+
+        .input-wrapper {
+            max-width: 720px;
+            margin: 0 auto;
+            display: flex;
+            gap: 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            transition: border-color 0.15s ease;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--accent);
+        }
+
+        .input-wrapper textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            font-family: inherit;
+            min-height: 24px;
+            max-height: 120px;
+        }
+
+        .input-wrapper textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        .send-btn {
+            padding: 8px 14px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            align-self: flex-end;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Error */
+        .error-content {
+            color: var(--error);
+            padding: 12px 14px;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: var(--radius-sm);
+            border-left: 3px solid var(--error);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <div class="logo-icon">C</div>
+                <span class="logo-text">Confluence Q&A</span>
+            </div>
+            <button class="new-chat-btn" onclick="newChat()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <path d="M12 5v14M5 12h14"/>
+                </svg>
+                Yeni Sohbet
+            </button>
+        </div>
+
+        <div class="sessions-list" id="sessionsList"></div>
+
+        <div class="sidebar-footer">
+            <a href="/database" class="sidebar-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                </svg>
+                Veritabani
+            </a>
+            <a href="/settings" class="sidebar-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                </svg>
+                Ayarlar
+            </a>
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="chat-header">
+            <span class="chat-title" id="chatTitle">Confluence Q&A</span>
+            <div class="header-stats" id="headerStats">
+                <div class="stat-item">
+                    <span class="stat-dot" id="statusDot"></span>
+                    <span id="statusText">Bagli</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="messages" id="messagesContainer">
+            <div class="empty-state" id="emptyState">
+                <div class="empty-icon">?</div>
+                <h2 class="empty-title">Confluence'a Sor</h2>
+                <p class="empty-desc">Sirketteki dokumanlarda ne var? Projeler, API'ler, surecler hakkinda her seyi sorabilirsin.</p>
+                <div class="suggestions">
+                    <span class="suggestion" onclick="askQuestion(this)">Proje yapisi nasil?</span>
+                    <span class="suggestion" onclick="askQuestion(this)">API dokumantasyonu</span>
+                    <span class="suggestion" onclick="askQuestion(this)">Deployment sureci</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-wrapper">
+                <textarea
+                    id="messageInput"
+                    placeholder="Bir soru sor..."
+                    rows="1"
+                    onkeydown="handleKeyDown(event)"
+                    oninput="autoResize(this)"
+                ></textarea>
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">Gonder</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentSessionId = localStorage.getItem('currentSessionId');
+        let isProcessing = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSessions();
+            checkHealth();
+            setInterval(checkHealth, 30000);
+
+            // Kayıtlı session varsa yükle
+            if (currentSessionId) {
+                loadSession(currentSessionId);
+            }
+        });
+
+        // Sessions
+        async function loadSessions() {
+            try {
+                const res = await fetch('/sessions');
+                const sessions = await res.json();
+                renderSessions(sessions);
+            } catch (e) {
+                console.error('Sessions error:', e);
+            }
+        }
+
+        function renderSessions(sessions) {
+            const el = document.getElementById('sessionsList');
+            if (sessions.length === 0) {
+                el.innerHTML = '<div style="padding: 16px; color: var(--text-muted); font-size: 12px; text-align: center;">Henuz sohbet yok</div>';
+                return;
+            }
+            el.innerHTML = sessions.map(s => `
+                <div class="session-item ${s.id === currentSessionId ? 'active' : ''}" onclick="loadSession('${s.id}')">
+                    <div class="session-title">${escapeHtml(s.title)}</div>
+                    <div class="session-meta">${s.message_count} mesaj</div>
+                </div>
+            `).join('');
+        }
+
+        async function loadSession(sessionId) {
+            currentSessionId = sessionId;
+            localStorage.setItem('currentSessionId', sessionId);
+            try {
+                const res = await fetch(`/sessions/${sessionId}`);
+                if (!res.ok) {
+                    // Session bulunamadı, localStorage'ı temizle
+                    localStorage.removeItem('currentSessionId');
+                    currentSessionId = null;
+                    return;
+                }
+                const session = await res.json();
+                document.getElementById('chatTitle').textContent = session.title || 'Confluence Q&A';
+                renderMessages(session.messages);
+                loadSessions();
+            } catch (e) {
+                console.error('Session load error:', e);
+                localStorage.removeItem('currentSessionId');
+                currentSessionId = null;
+            }
+        }
+
+        function renderMessages(messages) {
+            const el = document.getElementById('messagesContainer');
+            const empty = document.getElementById('emptyState');
+            if (empty) empty.style.display = 'none';
+            el.innerHTML = messages.map(m => {
+                if (m.role === 'assistant') {
+                    return createAssistantMessage(m.content, m.sources, m.stats);
+                }
+                return createMessageHTML(m.role, m.content);
+            }).join('');
+            scrollToBottom();
+        }
+
+        function newChat() {
+            currentSessionId = null;
+            localStorage.removeItem('currentSessionId');
+            document.getElementById('chatTitle').textContent = 'Confluence Q&A';
+            document.getElementById('messagesContainer').innerHTML = `
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-icon">?</div>
+                    <h2 class="empty-title">Confluence'a Sor</h2>
+                    <p class="empty-desc">Sirketteki dokumanlarda ne var? Projeler, API'ler, surecler hakkinda her seyi sorabilirsin.</p>
+                    <div class="suggestions">
+                        <span class="suggestion" onclick="askQuestion(this)">Proje yapisi nasil?</span>
+                        <span class="suggestion" onclick="askQuestion(this)">API dokumantasyonu</span>
+                        <span class="suggestion" onclick="askQuestion(this)">Deployment sureci</span>
+                    </div>
+                </div>
+            `;
+            loadSessions();
+        }
+
+        // Chat
+        async function sendMessage() {
+            if (isProcessing) return;
+
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            input.value = '';
+            autoResize(input);
+
+            const empty = document.getElementById('emptyState');
+            if (empty) empty.style.display = 'none';
+
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML += createMessageHTML('user', message);
+
+            const loadingId = 'loading-' + Date.now();
+            container.innerHTML += `
+                <div class="loading-message" id="${loadingId}">
+                    <div class="message-header">
+                        <div class="avatar assistant">AI</div>
+                        <span class="sender-name">Confluence AI</span>
+                    </div>
+                    <div class="loading-content">
+                        <div class="loading-spinner"></div>
+                        <span class="loading-text">Dokumanlari tariyorum...</span>
+                    </div>
+                </div>
+            `;
+            scrollToBottom();
+            setProcessing(true);
+
+            try {
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: currentSessionId, message })
+                });
+
+                const data = await res.json();
+                document.getElementById(loadingId)?.remove();
+
+                if (data.success) {
+                    currentSessionId = data.session_id;
+                    localStorage.setItem('currentSessionId', data.session_id);
+                    container.innerHTML += createAssistantMessage(data.answer, data.sources, data.stats);
+                    document.getElementById('chatTitle').textContent = message.substring(0, 40) + (message.length > 40 ? '...' : '');
+                    loadSessions();
+                } else {
+                    container.innerHTML += `
+                        <div class="message assistant">
+                            <div class="message-header">
+                                <div class="avatar assistant">AI</div>
+                                <span class="sender-name">Confluence AI</span>
+                            </div>
+                            <div class="message-body">
+                                <div class="error-content">Hata: ${escapeHtml(data.error || 'Bilinmeyen hata')}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+            } catch (e) {
+                document.getElementById(loadingId)?.remove();
+                container.innerHTML += `
+                    <div class="message assistant">
+                        <div class="message-header">
+                            <div class="avatar assistant">AI</div>
+                            <span class="sender-name">Confluence AI</span>
+                        </div>
+                        <div class="message-body">
+                            <div class="error-content">Baglanti hatasi: ${escapeHtml(e.message)}</div>
+                        </div>
+                    </div>
+                `;
+            } finally {
+                setProcessing(false);
+                scrollToBottom();
+            }
+        }
+
+        function createMessageHTML(role, content, stats = null) {
+            const avatar = role === 'user' ? 'S' : 'AI';
+            const name = role === 'user' ? 'Sen' : 'Confluence AI';
+            const formattedContent = role === 'user' ? escapeHtml(content) : formatContent(content);
+
+            return `
+                <div class="message ${role}">
+                    <div class="message-header">
+                        <div class="avatar ${role}">${avatar}</div>
+                        <span class="sender-name">${name}</span>
+                    </div>
+                    <div class="message-body">
+                        <div class="message-content">${formattedContent}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createAssistantMessage(content, sources, stats) {
+            let html = `
+                <div class="message assistant">
+                    <div class="message-header">
+                        <div class="avatar assistant">AI</div>
+                        <span class="sender-name">Confluence AI</span>
+                    </div>
+                    <div class="message-body">
+            `;
+
+            // Tool calls
+            if (stats?.tool_calls?.length > 0) {
+                html += `<div class="tools-used">
+                    <div class="tools-title">Kullanilan Araclar</div>`;
+                stats.tool_calls.forEach(tc => {
+                    html += `<div class="tool-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        <strong>${escapeHtml(tc.tool)}</strong>: ${escapeHtml(tc.result_preview || '')}
+                    </div>`;
+                });
+                html += '</div>';
+            }
+
+            // Content
+            html += `<div class="message-content">${formatContent(content)}</div>`;
+
+            // Sources
+            if (sources?.length > 0) {
+                html += `<div class="sources">
+                    <div class="sources-title">Kaynaklar</div>`;
+                sources.forEach(s => {
+                    html += `<a href="${escapeHtml(s.url)}" target="_blank" class="source-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+                            <polyline points="15 3 21 3 21 9"/>
+                            <line x1="10" y1="14" x2="21" y2="3"/>
+                        </svg>
+                        ${escapeHtml(s.title)}
+                    </a>`;
+                });
+                html += '</div>';
+            }
+
+            // Stats
+            if (stats) {
+                html += `<div class="response-stats">`;
+                if (stats.duration_ms) {
+                    html += `<span class="stat-badge">${(stats.duration_ms / 1000).toFixed(1)}s</span>`;
+                }
+                if (stats.tokens?.total) {
+                    html += `<span class="stat-badge">${stats.tokens.total} token</span>`;
+                }
+                if (stats.estimated_cost_usd) {
+                    html += `<span class="stat-badge">$${stats.estimated_cost_usd.toFixed(4)}</span>`;
+                }
+                if (stats.api_calls?.database) {
+                    html += `<span class="stat-badge">${stats.api_calls.database} DB sorgu</span>`;
+                }
+                html += '</div>';
+            }
+
+            html += '</div></div>';
+            return html;
+        }
+
+        // Format content (simple markdown-like parsing)
+        function formatContent(text) {
+            if (!text) return '';
+
+            let html = escapeHtml(text);
+
+            // Headers
+            html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+            // Bold
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+            // Italic
+            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+            // Code blocks
+            html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+
+            // Inline code
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+            // Links
+            html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+
+            // Lists
+            html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+            html = html.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>');
+
+            // Horizontal rule
+            html = html.replace(/^---$/gm, '<hr>');
+
+            // Paragraphs
+            html = html.replace(/\n\n/g, '</p><p>');
+            html = html.replace(/\n/g, '<br>');
+
+            return '<p>' + html + '</p>';
+        }
+
+        // Utils
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function handleKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function autoResize(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+        }
+
+        function scrollToBottom() {
+            const el = document.getElementById('messagesContainer');
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function setProcessing(state) {
+            isProcessing = state;
+            document.getElementById('sendBtn').disabled = state;
+            document.getElementById('messageInput').disabled = state;
+        }
+
+        function askQuestion(el) {
+            document.getElementById('messageInput').value = el.textContent;
+            sendMessage();
+        }
+
+        // Health
+        async function checkHealth() {
+            try {
+                const res = await fetch('/health');
+                const data = await res.json();
+                const dot = document.getElementById('statusDot');
+                const text = document.getElementById('statusText');
+
+                if (data.status === 'ok') {
+                    dot.className = 'stat-dot';
+                    text.textContent = 'Bagli';
+                } else {
+                    dot.className = 'stat-dot warning';
+                    text.textContent = 'Kismi';
+                }
+            } catch (e) {
+                document.getElementById('statusDot').className = 'stat-dot error';
+                document.getElementById('statusText').textContent = 'Baglanti yok';
+            }
+        }
+
+        // Sync
+        async function runSync() {
+            if (confirm('Confluence sync baslatilsin mi? Bu islem birkaç dakika surebilir.')) {
+                try {
+                    await fetch('/sync/run', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mode: 'full' })
+                    });
+                    alert('Sync baslatildi!');
+                } catch (e) {
+                    alert('Hata: ' + e.message);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

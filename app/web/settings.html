@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayarlar - Confluence Q&A</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #242424;
+            --bg-hover: #2a2a2a;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --accent-muted: rgba(99, 102, 241, 0.15);
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --border: #27272a;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* Navigation */
+        .nav {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            height: 56px;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-right: 24px;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .nav-logo-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .nav-logo-text {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: var(--radius-sm);
+            transition: all 0.15s ease;
+        }
+
+        .nav-link:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .nav-link.active {
+            background: var(--accent-muted);
+            color: var(--accent-hover);
+        }
+
+        .nav-link svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .page-desc {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Card */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .card + .card {
+            margin-top: 24px;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .card-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .card-badge.default {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success);
+        }
+
+        .card-badge.modified {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .form-textarea {
+            width: 100%;
+            min-height: 400px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: 'SF Mono', Monaco, Consolas, monospace;
+            line-height: 1.6;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.15s ease;
+        }
+
+        .form-textarea:focus {
+            border-color: var(--accent);
+        }
+
+        .form-textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-help {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: none;
+        }
+
+        .btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--text-muted);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--error);
+            border: 1px solid transparent;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            padding: 12px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .toast.success {
+            background: var(--success);
+            color: white;
+        }
+
+        .toast.error {
+            background: var(--error);
+            color: white;
+        }
+
+        .toast.info {
+            background: var(--accent);
+            color: white;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Sync Status Card */
+        .sync-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .sync-item {
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+        }
+
+        .sync-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .sync-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .sync-value.small {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .sync-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .sync-dot.success { background: var(--success); }
+        .sync-dot.error { background: var(--error); }
+        .sync-dot.warning { background: var(--warning); }
+
+        /* Info box */
+        .info-box {
+            display: flex;
+            gap: 12px;
+            padding: 14px 16px;
+            background: var(--accent-muted);
+            border-radius: var(--radius-sm);
+            margin-bottom: 20px;
+        }
+
+        .info-box svg {
+            width: 18px;
+            height: 18px;
+            color: var(--accent-hover);
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .info-box-content {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .info-box-content strong {
+            color: var(--text-primary);
+        }
+
+        /* Loading */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/" class="nav-logo">
+            <div class="nav-logo-icon">C</div>
+            <span class="nav-logo-text">Confluence Q&A</span>
+        </a>
+        <a href="/" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+            Chat
+        </a>
+        <a href="/database" class="nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+            </svg>
+            Veritabani
+        </a>
+        <a href="/settings" class="nav-link active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+            Ayarlar
+        </a>
+    </nav>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Ayarlar</h1>
+            <p class="page-desc">Agent davranisini ve sistem ayarlarini yapilandir</p>
+        </div>
+
+        <!-- Sync Status -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Sistem Durumu</h2>
+                <button class="btn btn-secondary" onclick="runSync()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 4v6h-6M1 20v-6h6"/>
+                        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                    </svg>
+                    Sync Baslat
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="sync-info" id="syncInfo">
+                    <div class="sync-item">
+                        <div class="sync-label">Durum</div>
+                        <div class="sync-value">
+                            <span class="sync-status">
+                                <span class="sync-dot" id="syncStatusDot"></span>
+                                <span id="syncStatusText">Kontrol ediliyor...</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="sync-item">
+                        <div class="sync-label">Son Sync</div>
+                        <div class="sync-value small" id="lastSyncTime">-</div>
+                    </div>
+                    <div class="sync-item">
+                        <div class="sync-label">Toplam Sayfa</div>
+                        <div class="sync-value" id="totalPages">-</div>
+                    </div>
+                    <div class="sync-item">
+                        <div class="sync-label">Toplam Chunk</div>
+                        <div class="sync-value" id="totalChunks">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Agent Instructions</h2>
+                <span class="card-badge" id="instructionsBadge">
+                    <span id="badgeText">Yukleniyor...</span>
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="info-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 16v-4M12 8h.01"/>
+                    </svg>
+                    <div class="info-box-content">
+                        <strong>Instructions nedir?</strong> Agent'in nasil davranacagini, ne zaman arama yapacagini
+                        ve cevaplari nasil formatlayacagini belirleyen sistem prompt'udur. Degisiklikler aninda uygulanir.
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">System Prompt</label>
+                    <textarea
+                        class="form-textarea"
+                        id="instructionsTextarea"
+                        placeholder="Instructions yuklenirken..."
+                    ></textarea>
+                    <p class="form-help">
+                        Markdown formatinda yazabilirsiniz. Degisiklikler kaydedilene kadar uygulanmaz.
+                    </p>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="saveInstructions()" id="saveBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/>
+                            <polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                        Kaydet
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetInstructions()" id="resetBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/>
+                            <path d="M3 3v5h5"/>
+                        </svg>
+                        Varsayilana Don
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Usage Stats -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Kullanim Istatistikleri</h2>
+            </div>
+            <div class="card-body">
+                <div class="sync-info">
+                    <div class="sync-item">
+                        <div class="sync-label">Toplam Istek</div>
+                        <div class="sync-value" id="totalRequests">-</div>
+                    </div>
+                    <div class="sync-item">
+                        <div class="sync-label">Toplam Token</div>
+                        <div class="sync-value" id="totalTokens">-</div>
+                    </div>
+                    <div class="sync-item">
+                        <div class="sync-label">Toplam Maliyet</div>
+                        <div class="sync-value" id="totalCost">-</div>
+                    </div>
+                    <div class="sync-item">
+                        <div class="sync-label">Aktif Session</div>
+                        <div class="sync-value" id="activeSessions">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <script>
+        let originalInstructions = '';
+        let isDefault = true;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadInstructions();
+            loadStats();
+            loadSyncStatus();
+
+            // Stats'ı her 10 saniyede bir güncelle
+            setInterval(loadStats, 10000);
+        });
+
+        // Instructions
+        async function loadInstructions() {
+            try {
+                const res = await fetch('/api/instructions');
+                const data = await res.json();
+
+                originalInstructions = data.current;
+                isDefault = data.is_default;
+
+                document.getElementById('instructionsTextarea').value = data.current;
+                updateBadge(data.is_default);
+            } catch (e) {
+                console.error('Instructions error:', e);
+                showToast('Instructions yuklenemedi', 'error');
+            }
+        }
+
+        function updateBadge(isDefault) {
+            const badge = document.getElementById('instructionsBadge');
+            const badgeText = document.getElementById('badgeText');
+
+            if (isDefault) {
+                badge.className = 'card-badge default';
+                badgeText.textContent = 'Varsayilan';
+            } else {
+                badge.className = 'card-badge modified';
+                badgeText.textContent = 'Ozellestrilmis';
+            }
+        }
+
+        async function saveInstructions() {
+            const textarea = document.getElementById('instructionsTextarea');
+            const newInstructions = textarea.value.trim();
+
+            if (!newInstructions) {
+                showToast('Instructions bos olamaz', 'error');
+                return;
+            }
+
+            setLoading(true);
+
+            try {
+                const res = await fetch('/api/instructions', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ instructions: newInstructions })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    originalInstructions = newInstructions;
+                    showToast('Instructions kaydedildi', 'success');
+                    loadInstructions(); // Refresh to update badge
+                } else {
+                    showToast('Kaydetme hatasi', 'error');
+                }
+            } catch (e) {
+                console.error('Save error:', e);
+                showToast('Baglanti hatasi', 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function resetInstructions() {
+            if (!confirm('Instructions varsayilana donduruluecek. Emin misiniz?')) {
+                return;
+            }
+
+            setLoading(true);
+
+            try {
+                const res = await fetch('/api/instructions/reset', {
+                    method: 'POST'
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast('Varsayilana donduruldu', 'success');
+                    loadInstructions();
+                } else {
+                    showToast('Reset hatasi', 'error');
+                }
+            } catch (e) {
+                console.error('Reset error:', e);
+                showToast('Baglanti hatasi', 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Stats
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+
+                document.getElementById('totalPages').textContent = data.database.pages.toLocaleString();
+                document.getElementById('totalChunks').textContent = data.database.chunks.toLocaleString();
+                document.getElementById('totalRequests').textContent = data.usage.total_requests.toLocaleString();
+                document.getElementById('totalTokens').textContent = data.usage.total_tokens.toLocaleString();
+                document.getElementById('totalCost').textContent = '$' + data.usage.total_cost_usd.toFixed(4);
+
+                if (data.database.last_sync) {
+                    const date = new Date(data.database.last_sync);
+                    document.getElementById('lastSyncTime').textContent = date.toLocaleDateString('tr-TR', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    const statusDot = document.getElementById('syncStatusDot');
+                    const statusText = document.getElementById('syncStatusText');
+
+                    if (data.database.last_sync_success) {
+                        statusDot.className = 'sync-dot success';
+                        statusText.textContent = 'Basarili';
+                    } else {
+                        statusDot.className = 'sync-dot error';
+                        statusText.textContent = 'Basarisiz';
+                    }
+                } else {
+                    document.getElementById('lastSyncTime').textContent = 'Henuz sync yapilmadi';
+                    document.getElementById('syncStatusDot').className = 'sync-dot warning';
+                    document.getElementById('syncStatusText').textContent = 'Bekliyor';
+                }
+
+                // Sessions count
+                const sessionsRes = await fetch('/sessions');
+                const sessions = await sessionsRes.json();
+                document.getElementById('activeSessions').textContent = sessions.length;
+
+            } catch (e) {
+                console.error('Stats error:', e);
+            }
+        }
+
+        // Sync
+        async function loadSyncStatus() {
+            try {
+                const res = await fetch('/sync/status');
+                const data = await res.json();
+                // Status already loaded in loadStats
+            } catch (e) {
+                console.error('Sync status error:', e);
+            }
+        }
+
+        async function runSync() {
+            if (!confirm('Confluence sync baslatilsin mi? Bu islem birkac dakika surebilir.')) {
+                return;
+            }
+
+            try {
+                await fetch('/sync/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: 'full' })
+                });
+
+                showToast('Sync baslatildi', 'info');
+
+                // Refresh stats after a delay
+                setTimeout(loadStats, 5000);
+            } catch (e) {
+                showToast('Sync baslatilamadi: ' + e.message, 'error');
+            }
+        }
+
+        // Utils
+        function setLoading(state) {
+            document.getElementById('loadingOverlay').classList.toggle('active', state);
+            document.getElementById('saveBtn').disabled = state;
+            document.getElementById('resetBtn').disabled = state;
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                    ${type === 'success' ? '<path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>' : ''}
+                    ${type === 'error' ? '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>' : ''}
+                    ${type === 'info' ? '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>' : ''}
+                </svg>
+                ${message}
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
