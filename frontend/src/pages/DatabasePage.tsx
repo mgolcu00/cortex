@@ -97,13 +97,12 @@ export function DatabasePage() {
 
   return (
     <div className="h-full flex flex-col" style={{ background: 'rgb(12, 12, 12)' }}>
-      {/* Header */}
       <header
         className="h-14 flex items-center justify-between px-6 border-b"
         style={{ background: 'rgb(18, 18, 18)', borderColor: 'rgb(50, 50, 50)' }}
       >
         <div className="flex items-center gap-3">
-          <Database size={20} className="text-teal-500" />
+          <Database size={20} className="text-orange-500" />
           <h1 className="text-lg font-semibold text-white">Veritabani</h1>
         </div>
         <button
@@ -117,7 +116,6 @@ export function DatabasePage() {
       </header>
 
       <div className="flex-1 overflow-y-auto p-6">
-        {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <StatCard
             label="Toplam Sayfa"
@@ -141,7 +139,6 @@ export function DatabasePage() {
           />
         </div>
 
-        {/* Filters */}
         <div className="flex flex-wrap gap-3 mb-4">
           <select
             value={selectedSpace}
@@ -173,7 +170,6 @@ export function DatabasePage() {
           </form>
         </div>
 
-        {/* Table */}
         <div className="card overflow-hidden">
           <table className="data-table">
             <thead>
@@ -225,7 +221,6 @@ export function DatabasePage() {
             </tbody>
           </table>
 
-          {/* Pagination */}
           <div
             className="flex items-center justify-between p-4 border-t"
             style={{ borderColor: 'rgb(50, 50, 50)' }}
@@ -255,7 +250,6 @@ export function DatabasePage() {
         </div>
       </div>
 
-      {/* Page Detail Modal */}
       {selectedPage && (
         <PageDetailModal
           page={selectedPage}
@@ -283,7 +277,7 @@ function StatCard({
     <div className="stat-card">
       <div className="flex items-center justify-between mb-2">
         <span className="stat-label">{label}</span>
-        {icon && <span className="text-teal-500">{icon}</span>}
+        {icon && <span className="text-orange-500">{icon}</span>}
       </div>
       <p className="stat-value">{value}</p>
       {subtext && <p className="stat-subtext">{subtext}</p>}
@@ -306,7 +300,6 @@ function PageDetailModal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content max-w-3xl" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
         <div
           className="flex items-center justify-between p-4 border-b"
           style={{ borderColor: 'rgb(50, 50, 50)' }}
@@ -317,9 +310,7 @@ function PageDetailModal({
           </button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-4" style={{ maxHeight: 'calc(80vh - 80px)' }}>
-          {/* Meta */}
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div>
               <p className="stat-label">Space</p>
@@ -335,21 +326,19 @@ function PageDetailModal({
             </div>
           </div>
 
-          {/* URL */}
           <div className="mb-4">
             <p className="stat-label">URL</p>
             <a
               href={page.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-teal-400 hover:underline inline-flex items-center gap-1"
+              className="text-orange-400 hover:underline inline-flex items-center gap-1"
             >
               {page.url}
               <ExternalLink size={12} />
             </a>
           </div>
 
-          {/* Body preview */}
           <div className="mb-4">
             <p className="stat-label">Icerik (onizleme)</p>
             <div
@@ -360,7 +349,6 @@ function PageDetailModal({
             </div>
           </div>
 
-          {/* Chunks */}
           <div>
             <p className="stat-label mb-2">Chunks ({page.chunks.length})</p>
             <div className="space-y-2">

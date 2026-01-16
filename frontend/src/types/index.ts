@@ -12,6 +12,7 @@ export interface Message {
   sources?: Source[]
   stats?: MessageStats
   timestamp?: string
+  feedback?: 'like' | 'dislike' | null
 }
 
 export interface Source {
@@ -116,5 +117,27 @@ export interface Space {
 export interface Instructions {
   current: string
   default: string
+  is_default: boolean
+}
+
+export interface Feedback {
+  session_id: string
+  message_index: number
+  feedback: 'like' | 'dislike'
+  comment?: string
+}
+
+export interface FeedbackMap {
+  [messageIndex: number]: 'like' | 'dislike'
+}
+
+export interface StarterItem {
+  title: string
+  description: string
+  icon: string
+}
+
+export interface Starters {
+  starters: StarterItem[]
   is_default: boolean
 }

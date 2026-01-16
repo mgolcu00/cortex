@@ -1,7 +1,7 @@
 # app/config.py
 """
-Uygulama konfigürasyonu.
-Tüm environment variable'ları Pydantic Settings ile yönetir.
+Cortex - Uygulama Konfigurasyonu
+Tum environment variable'lari Pydantic Settings ile yonetir.
 """
 
 from functools import lru_cache
@@ -32,8 +32,8 @@ class Settings(BaseSettings):
     # ============================================================
     # Veritabanı Ayarları
     # ============================================================
-    database_url: str  # Zorunlu: PostgreSQL bağlantı URL'i
-    # Örnek: postgresql+psycopg://user:pass@localhost:5432/confluence_qa
+    database_url: str  # Zorunlu: PostgreSQL baglanti URL'i
+    # Ornek: postgresql+psycopg://user:pass@localhost:5432/cortex_db
 
     @property
     def database_url_fixed(self) -> str:

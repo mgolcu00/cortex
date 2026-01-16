@@ -1,8 +1,3 @@
-# app/agent.py
-"""
-Confluence Q&A Agent with PostgreSQL Session Persistence.
-"""
-
 import logging
 import re
 import json
@@ -26,12 +21,11 @@ from app.db.models import (
 
 logger = logging.getLogger(__name__)
 
-# OpenAI API key
 set_default_openai_key(settings.openai_api_key)
 
 
 # ============================================================
-# Configurable Instructions (PostgreSQL'de kalıcı)
+# Configurable Instructions
 # ============================================================
 DEFAULT_INSTRUCTIONS = """Sen şirketin Confluence bilgi asistanısın. Şirket içi dokümanlara, prosedürlere ve teknik bilgilere erişimin var. Amacın çalışanlara hızlı ve doğru bilgi sağlamak.
 
@@ -145,7 +139,7 @@ def reset_instructions():
 
 
 # ============================================================
-# İstatistik Takibi (PostgreSQL'de kalıcı)
+# Statistics
 # ============================================================
 @dataclass
 class RequestStats:
@@ -205,13 +199,11 @@ def _finalize_stats():
     global _current_stats
     if _current_stats:
         _current_stats.end_time = datetime.now()
-        # PostgreSQL'e kaydet
         try:
             with get_db() as db:
                 usage = get_or_create_usage_stats(db)
                 usage.total_requests += 1
                 usage.total_tokens += _current_stats.total_tokens
-                # Cost'u micro-dollar olarak sakla (float precision sorunlarını önlemek için)
                 usage.total_cost_usd += int(_current_stats.estimated_cost * 1_000_000)
                 usage.total_confluence_requests += _current_stats.confluence_requests
                 usage.total_db_requests += _current_stats.db_requests
@@ -423,7 +415,7 @@ TOOLS = [search_confluence, get_page_content, find_related_pages]
 
 
 # ============================================================
-# Veri Yapıları
+# Data Structures
 # ============================================================
 @dataclass
 class ChatSource:
@@ -443,7 +435,7 @@ class ChatResult:
 
 
 # ============================================================
-# Session Manager (PostgreSQL)
+# Session Manager
 # ============================================================
 class SessionManager:
     """PostgreSQL session yönetimi."""
@@ -461,7 +453,6 @@ class SessionManager:
                     "updated_at": session.updated_at.isoformat() if session.updated_at else None,
                 }
 
-            # Yeni session oluştur
             session = ChatSession(id=session_id, title="Yeni Sohbet")
             db.add(session)
 
@@ -475,14 +466,12 @@ class SessionManager:
     def save_message(self, session_id: str, role: str, content: str, sources: list = None, stats: dict = None):
         """Mesajı kaydet."""
         with get_db() as db:
-            # Session varsa kontrol et, yoksa oluştur
             session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
             if not session:
                 session = ChatSession(id=session_id, title="Yeni Sohbet")
                 db.add(session)
                 db.flush()
 
-            # İlk user mesajı ise title'ı güncelle
             if role == "user":
                 msg_count = db.query(ChatMessage).filter(
                     ChatMessage.session_id == session_id,
@@ -492,7 +481,6 @@ class SessionManager:
                     title = content[:50] + ("..." if len(content) > 50 else "")
                     session.title = title
 
-            # Mesajı kaydet
             message = ChatMessage(
                 session_id=session_id,
                 role=role,
@@ -629,7 +617,7 @@ def build_message_history(session_id: str) -> list:
 
 
 # ============================================================
-# Chat Fonksiyonu
+# Chat
 # ============================================================
 async def run_chat(message: str, session_id: str) -> ChatResult:
     """Session ile chat."""
@@ -637,26 +625,17 @@ async def run_chat(message: str, session_id: str) -> ChatResult:
 
     _init_stats()
     agent = create_agent()
-
-    # Session'ı oluştur veya al
     session_manager.create_or_get_session(session_id)
-
-    # User mesajını kaydet
     session_manager.save_message(session_id, "user", message)
-
-    # Geçmiş mesajları al
     history = build_message_history(session_id)
 
     try:
-        # Agent'ı çalıştır (geçmişi input olarak ver)
         if len(history) > 1:
-            # Geçmiş varsa, conversation şeklinde gönder
             result = await Runner.run(
                 agent,
-                history,  # Tüm geçmiş
+                history,
             )
         else:
-            # İlk mesaj
             result = await Runner.run(
                 agent,
                 message,
@@ -665,15 +644,12 @@ async def run_chat(message: str, session_id: str) -> ChatResult:
         response_text = result.final_output or ""
         sources = extract_sources(response_text)
 
-        # Token stats güncelle
         if _current_stats:
-            # Usage bilgisini result'tan almaya çalış
             if hasattr(result.context_wrapper, 'usage') and result.context_wrapper.usage:
                 _current_stats.prompt_tokens = getattr(result.context_wrapper.usage, 'input_tokens', 0)
                 _current_stats.completion_tokens = getattr(result.context_wrapper.usage, 'output_tokens', 0)
                 _current_stats.total_tokens = _current_stats.prompt_tokens + _current_stats.completion_tokens
             else:
-                # Tahmin
                 _current_stats.prompt_tokens = len(message.split()) * 2 + 300
                 _current_stats.completion_tokens = len(response_text.split()) * 2
                 _current_stats.total_tokens = _current_stats.prompt_tokens + _current_stats.completion_tokens
@@ -681,7 +657,6 @@ async def run_chat(message: str, session_id: str) -> ChatResult:
         _finalize_stats()
         stats = _current_stats.to_dict() if _current_stats else {}
 
-        # Assistant mesajını kaydet
         session_manager.save_message(
             session_id,
             "assistant",
@@ -690,7 +665,6 @@ async def run_chat(message: str, session_id: str) -> ChatResult:
             stats=stats
         )
 
-        # Session usage al
         session_usage = await session_manager.get_session_usage(session_id)
 
         logger.info(f"Chat OK: {len(sources)} kaynak, {stats.get('duration_ms', 0)}ms")

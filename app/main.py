@@ -1,8 +1,3 @@
-# app/main.py
-"""
-FastAPI uygulama ana dosyası.
-"""
-
 import logging
 import uuid
 from contextlib import asynccontextmanager
@@ -18,7 +13,7 @@ from pydantic import BaseModel
 
 from app.config import settings
 from app.db.database import init_db, check_db_connection, get_db
-from app.db.models import Page, Chunk, SyncState
+from app.db.models import Page, Chunk, SyncState, MessageFeedback, AppSettings
 from app.confluence.client import ConfluenceClient
 from app.ingest.sync import SyncManager, get_sync_status, start_sync_scheduler, stop_sync_scheduler
 from app.agent import (
@@ -72,7 +67,7 @@ async def lifespan(app: FastAPI):
 # FastAPI App
 # ============================================================
 app = FastAPI(
-    title="Confluence Q&A",
+    title="Cortex",
     version="2.0.0",
     lifespan=lifespan,
 )
@@ -100,6 +95,31 @@ class SyncRequest(BaseModel):
 
 class InstructionsRequest(BaseModel):
     instructions: str
+
+
+class FeedbackRequest(BaseModel):
+    session_id: str
+    message_index: int
+    feedback: str  # 'like' or 'dislike'
+    comment: Optional[str] = None
+
+
+class StarterItem(BaseModel):
+    title: str
+    description: str
+    icon: str = "Lightbulb"  # Lucide icon name
+
+
+class StartersRequest(BaseModel):
+    starters: list[StarterItem]
+
+
+DEFAULT_STARTERS = [
+    {"title": "Proje Yapisi", "description": "Kod organizasyonu nasil?", "icon": "Code"},
+    {"title": "API Dokumantasyonu", "description": "Endpoint'ler ve kullanim", "icon": "FileText"},
+    {"title": "Deployment Sureci", "description": "Production'a nasil cikarim?", "icon": "Rocket"},
+    {"title": "Onboarding", "description": "Yeni baslayanlar icin rehber", "icon": "Lightbulb"},
+]
 
 
 # ============================================================
@@ -200,8 +220,6 @@ async def chat_endpoint(request: ChatRequest):
 async def get_sessions():
     """Tüm session'ları listele."""
     sessions = await session_manager.get_all_sessions()
-
-    # Title için ilk mesajı al
     result = []
     for s in sessions:
         messages = await session_manager.get_session_messages(s["id"])
@@ -230,14 +248,12 @@ async def get_session_detail(session_id: str):
     if not messages:
         raise HTTPException(status_code=404, detail="Session bulunamadı")
 
-    # Title
     title = "Sohbet"
     for m in messages:
         if m["role"] == "user":
             title = m["content"][:50] + ("..." if len(m["content"]) > 50 else "")
             break
 
-    # Usage
     usage = await session_manager.get_session_usage(session_id)
 
     return {
@@ -326,6 +342,68 @@ async def reset_to_default_instructions():
         "success": True,
         "message": "Default instructions'a dönüldü",
     }
+
+
+# ============================================================
+# Conversation Starters
+# ============================================================
+@app.get("/api/starters")
+async def get_conversation_starters():
+    """Konu baslaticilari getir."""
+    import json
+    try:
+        with get_db() as db:
+            setting = db.query(AppSettings).filter(AppSettings.key == "conversation_starters").first()
+            if setting and setting.value:
+                starters = json.loads(setting.value)
+                return {
+                    "starters": starters,
+                    "is_default": False,
+                }
+    except Exception as e:
+        logger.error(f"Starters getirme hatası: {e}")
+
+    return {
+        "starters": DEFAULT_STARTERS,
+        "is_default": True,
+    }
+
+
+@app.put("/api/starters")
+async def update_conversation_starters(request: StartersRequest):
+    """Konu baslaticilari guncelle."""
+    import json
+    try:
+        with get_db() as db:
+            setting = db.query(AppSettings).filter(AppSettings.key == "conversation_starters").first()
+            if setting:
+                setting.value = json.dumps([s.model_dump() for s in request.starters])
+            else:
+                setting = AppSettings(
+                    key="conversation_starters",
+                    value=json.dumps([s.model_dump() for s in request.starters])
+                )
+                db.add(setting)
+            db.commit()
+
+        return {"success": True, "message": "Starters guncellendi"}
+    except Exception as e:
+        logger.error(f"Starters guncelleme hatası: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/starters/reset")
+async def reset_conversation_starters():
+    """Default starters'a don."""
+    try:
+        with get_db() as db:
+            db.query(AppSettings).filter(AppSettings.key == "conversation_starters").delete()
+            db.commit()
+
+        return {"success": True, "message": "Default starters'a donuldu"}
+    except Exception as e:
+        logger.error(f"Starters reset hatası: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================================
@@ -432,6 +510,78 @@ async def get_db_spaces():
 
 
 # ============================================================
+# Feedback
+# ============================================================
+@app.post("/api/feedback")
+async def submit_feedback(request: FeedbackRequest):
+    """Mesaj geri bildirimi kaydet."""
+    if request.feedback not in ("like", "dislike"):
+        raise HTTPException(status_code=400, detail="Feedback must be 'like' or 'dislike'")
+
+    try:
+        with get_db() as db:
+            existing = db.query(MessageFeedback).filter(
+                MessageFeedback.session_id == request.session_id,
+                MessageFeedback.message_index == request.message_index,
+            ).first()
+
+            if existing:
+                existing.feedback = request.feedback
+                existing.comment = request.comment
+            else:
+                feedback = MessageFeedback(
+                    session_id=request.session_id,
+                    message_index=request.message_index,
+                    feedback=request.feedback,
+                    comment=request.comment,
+                )
+                db.add(feedback)
+
+            db.commit()
+
+        return {"success": True, "message": "Feedback kaydedildi"}
+    except Exception as e:
+        logger.error(f"Feedback hatası: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/feedback/{session_id}")
+async def get_session_feedback(session_id: str):
+    """Session'a ait tum feedback'leri getir."""
+    try:
+        with get_db() as db:
+            feedbacks = db.query(MessageFeedback).filter(
+                MessageFeedback.session_id == session_id
+            ).all()
+
+            return {
+                "feedbacks": {
+                    f.message_index: f.feedback for f in feedbacks
+                }
+            }
+    except Exception as e:
+        logger.error(f"Feedback getirme hatası: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/feedback")
+async def delete_feedback(session_id: str, message_index: int):
+    """Feedback'i sil."""
+    try:
+        with get_db() as db:
+            db.query(MessageFeedback).filter(
+                MessageFeedback.session_id == session_id,
+                MessageFeedback.message_index == message_index,
+            ).delete()
+            db.commit()
+
+        return {"success": True, "message": "Feedback silindi"}
+    except Exception as e:
+        logger.error(f"Feedback silme hatası: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================
 # Sync
 # ============================================================
 @app.post("/sync/run")
@@ -459,14 +609,11 @@ async def sync_status_endpoint():
 
 
 # ============================================================
-# Static Files / Frontend (React SPA)
+# Static Files / Frontend
 # ============================================================
-# Frontend dist klasörü (production build)
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend" / "dist"
 
-# Eğer frontend build varsa static dosyaları serve et
 if FRONTEND_DIR.exists():
-    # Assets klasörünü mount et (JS, CSS, vb.)
     app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
 
 
@@ -479,16 +626,9 @@ async def favicon():
     raise HTTPException(status_code=404, detail="Favicon not found")
 
 
-# SPA routing - tüm frontend route'larını index.html'e yönlendir
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str):
-    """
-    React SPA için catch-all route.
-    API olmayan tüm istekleri index.html'e yönlendir.
-    """
-    # API route'ları zaten üstte tanımlı, buraya düşmezler
-    # Sadece frontend route'ları buraya gelir
-
+    """React SPA catch-all route."""
     index_path = FRONTEND_DIR / "index.html"
 
     if index_path.exists():

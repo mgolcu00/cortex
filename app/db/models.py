@@ -315,6 +315,28 @@ class AppSettings(Base):
 
 
 # ============================================================
+# Message Feedback Tablosu
+# Kullanici geri bildirimleri (like/dislike)
+# ============================================================
+class MessageFeedback(Base):
+    """
+    Mesaj geri bildirimi modeli.
+    Kullanicilarin mesajlari begenmesi/begenmemesi.
+    """
+    __tablename__ = "message_feedback"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(64), nullable=False, index=True)
+    message_index = Column(Integer, nullable=False)  # Mesajin session icindeki sirasi
+    feedback = Column(String(16), nullable=False)  # 'like' veya 'dislike'
+    comment = Column(Text)  # Opsiyonel kullanici yorumu
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    def __repr__(self) -> str:
+        return f"<MessageFeedback(session={self.session_id}, index={self.message_index}, feedback={self.feedback})>"
+
+
+# ============================================================
 # Yardımcı Fonksiyonlar
 # ============================================================
 def get_or_create_sync_state(db) -> SyncState:

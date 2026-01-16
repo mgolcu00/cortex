@@ -1,10 +1,76 @@
 import { useEffect, useState, useRef } from 'react'
-import { Plus, Send, Trash2, MessageSquare, ExternalLink, ArrowUp } from 'lucide-react'
+import {
+  Plus,
+  Trash2,
+  MessageSquare,
+  ExternalLink,
+  ArrowUp,
+  ThumbsUp,
+  ThumbsDown,
+  Clock,
+  Sparkles,
+  Copy,
+  Check,
+  Bot,
+  User,
+  Loader2,
+  FileText,
+  Lightbulb,
+  Code,
+  Rocket,
+  BookOpen,
+  Search,
+  Settings,
+  Database,
+  Zap,
+  HelpCircle,
+  Users,
+  Shield,
+  Terminal,
+  GitBranch,
+  Package,
+  Cloud,
+  Server,
+  Layers,
+  Workflow,
+  type LucideIcon,
+} from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { useStore } from '@/lib/store'
 import * as api from '@/lib/api'
 import { formatDate, generateId, truncate } from '@/lib/utils'
-import type { Message, Session } from '@/types'
+import type { Message, Session, StarterItem } from '@/types'
+
+// Icon mapping for dynamic icons
+const iconMap: Record<string, LucideIcon> = {
+  Code,
+  FileText,
+  Rocket,
+  Lightbulb,
+  BookOpen,
+  Search,
+  Settings,
+  Database,
+  Zap,
+  MessageSquare,
+  HelpCircle,
+  Users,
+  Shield,
+  Terminal,
+  GitBranch,
+  Package,
+  Cloud,
+  Server,
+  Layers,
+  Workflow,
+}
+
+const defaultStarters: StarterItem[] = [
+  { title: 'Proje Yapisi', description: 'Kod organizasyonu nasil?', icon: 'Code' },
+  { title: 'API Dokumantasyonu', description: "Endpoint'ler ve kullanim", icon: 'FileText' },
+  { title: 'Deployment Sureci', description: "Production'a nasil cikarim?", icon: 'Rocket' },
+  { title: 'Onboarding', description: 'Yeni baslayanlar icin rehber', icon: 'Lightbulb' },
+]
 
 export function ChatPage() {
   const {
@@ -23,18 +89,38 @@ export function ChatPage() {
   const [input, setInput] = useState('')
   const [streamingText, setStreamingText] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
+  const [feedbacks, setFeedbacks] = useState<Record<number, 'like' | 'dislike'>>({})
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const [starters, setStarters] = useState<StarterItem[]>(defaultStarters)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const isSendingRef = useRef(false)
 
   useEffect(() => {
     loadSessions()
+    loadStarters()
   }, [])
+
+  async function loadStarters() {
+    try {
+      const data = await api.getStarters()
+      if (data.starters && data.starters.length > 0) {
+        setStarters(data.starters)
+      }
+    } catch (error) {
+      console.error('Failed to load starters:', error)
+    }
+  }
 
   useEffect(() => {
     if (currentSessionId) {
-      loadSessionMessages(currentSessionId)
+      if (!isSendingRef.current) {
+        loadSessionMessages(currentSessionId)
+        loadFeedbacks(currentSessionId)
+      }
     } else {
       setMessages([])
+      setFeedbacks({})
     }
   }, [currentSessionId])
 
@@ -61,7 +147,15 @@ export function ChatPage() {
     }
   }
 
-  // Simulate streaming effect
+  async function loadFeedbacks(sessionId: string) {
+    try {
+      const data = await api.getSessionFeedback(sessionId)
+      setFeedbacks(data.feedbacks || {})
+    } catch (error) {
+      console.error('Failed to load feedbacks:', error)
+    }
+  }
+
   function simulateStreaming(text: string, onComplete: () => void) {
     setIsStreaming(true)
     setStreamingText('')
@@ -79,11 +173,13 @@ export function ChatPage() {
         setStreamingText('')
         onComplete()
       }
-    }, 30) // 30ms per word for natural feel
+    }, 25)
   }
 
   async function handleSend() {
     if (!input.trim() || isLoading) return
+
+    isSendingRef.current = true
 
     const userMessage: Message = {
       role: 'user',
@@ -115,9 +211,10 @@ export function ChatPage() {
           stats: response.stats,
         }
 
-        // Simulate streaming
         simulateStreaming(response.answer || '', () => {
           addMessage(assistantMessage)
+          isSendingRef.current = false
+          setLoading(false)
           loadSessions()
         })
       } else {
@@ -125,21 +222,22 @@ export function ChatPage() {
           role: 'assistant',
           content: `Hata: ${response.error || 'Bilinmeyen hata'}`,
         })
+        isSendingRef.current = false
+        setLoading(false)
       }
     } catch (error) {
       addMessage({
         role: 'assistant',
         content: `Baglanti hatasi: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`,
       })
-    } finally {
-      if (!isStreaming) {
-        setLoading(false)
-      }
+      isSendingRef.current = false
+      setLoading(false)
     }
   }
 
   function handleNewChat() {
     reset()
+    setFeedbacks({})
     inputRef.current?.focus()
   }
 
@@ -151,10 +249,43 @@ export function ChatPage() {
       await api.deleteSession(sessionId)
       if (currentSessionId === sessionId) {
         reset()
+        setFeedbacks({})
       }
       loadSessions()
     } catch (error) {
       console.error('Failed to delete session:', error)
+    }
+  }
+
+  async function handleFeedback(messageIndex: number, feedback: 'like' | 'dislike') {
+    if (!currentSessionId) return
+
+    const currentFeedback = feedbacks[messageIndex]
+
+    try {
+      if (currentFeedback === feedback) {
+        await api.deleteFeedback(currentSessionId, messageIndex)
+        setFeedbacks(prev => {
+          const next = { ...prev }
+          delete next[messageIndex]
+          return next
+        })
+      } else {
+        await api.submitFeedback(currentSessionId, messageIndex, feedback)
+        setFeedbacks(prev => ({ ...prev, [messageIndex]: feedback }))
+      }
+    } catch (error) {
+      console.error('Failed to submit feedback:', error)
+    }
+  }
+
+  async function handleCopy(text: string, index: number) {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedIndex(index)
+      setTimeout(() => setCopiedIndex(null), 2000)
+    } catch (error) {
+      console.error('Failed to copy:', error)
     }
   }
 
@@ -173,7 +304,6 @@ export function ChatPage() {
 
   return (
     <div className="flex h-full">
-      {/* Sessions Sidebar */}
       <aside className="w-[280px] flex flex-col border-r" style={{
         background: 'rgb(18, 18, 18)',
         borderColor: 'rgb(50, 50, 50)'
@@ -181,11 +311,11 @@ export function ChatPage() {
         <div className="p-3">
           <button
             onClick={handleNewChat}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
             style={{
-              background: 'rgb(38, 38, 38)',
+              background: 'linear-gradient(135deg, #f97316, #ea580c)',
               color: 'white',
-              border: '1px solid rgb(50, 50, 50)'
+              boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)'
             }}
           >
             <Plus size={18} />
@@ -193,10 +323,19 @@ export function ChatPage() {
           </button>
         </div>
 
+        <div className="px-3 pb-2">
+          <div className="flex items-center gap-2 text-[11px] text-gray-500 font-medium uppercase tracking-wider">
+            <Clock size={12} />
+            <span>Gecmis Sohbetler</span>
+          </div>
+        </div>
+
         <div className="flex-1 overflow-y-auto px-2 pb-2">
           {sessions.length === 0 ? (
-            <div className="text-center py-8 text-sm" style={{ color: 'rgb(115, 115, 115)' }}>
-              Henuz sohbet yok
+            <div className="text-center py-8 px-4">
+              <MessageSquare size={32} className="mx-auto mb-3 text-gray-600" />
+              <p className="text-sm text-gray-500">Henuz sohbet yok</p>
+              <p className="text-xs text-gray-600 mt-1">Yeni bir sohbet baslatarak Cortex'e soru sorun</p>
             </div>
           ) : (
             <div className="space-y-1">
@@ -214,22 +353,28 @@ export function ChatPage() {
         </div>
       </aside>
 
-      {/* Chat Area */}
       <div className="flex-1 flex flex-col min-w-0" style={{ background: 'rgb(12, 12, 12)' }}>
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto">
           {messages.length === 0 && !isStreaming ? (
-            <WelcomeScreen onSuggestionClick={setInput} />
+            <WelcomeScreen starters={starters} onSuggestionClick={setInput} />
           ) : (
             <div className="chat-container py-6">
               {messages.map((message, index) => (
-                <MessageRow key={index} message={message} />
+                <MessageRow
+                  key={index}
+                  message={message}
+                  feedback={feedbacks[index]}
+                  onFeedback={(fb) => handleFeedback(index, fb)}
+                  onCopy={() => handleCopy(message.content, index)}
+                  isCopied={copiedIndex === index}
+                />
               ))}
 
-              {/* Streaming message */}
               {isStreaming && streamingText && (
                 <div className="message-row">
-                  <div className="message-avatar assistant">C</div>
+                  <div className="message-avatar assistant">
+                    <Bot size={18} />
+                  </div>
                   <div className="message-bubble">
                     <div className="message-content">
                       {streamingText}
@@ -239,15 +384,15 @@ export function ChatPage() {
                 </div>
               )}
 
-              {/* Loading indicator */}
               {isLoading && !isStreaming && (
                 <div className="message-row">
-                  <div className="message-avatar assistant">C</div>
+                  <div className="message-avatar assistant">
+                    <Bot size={18} />
+                  </div>
                   <div className="message-bubble">
-                    <div className="typing-indicator">
-                      <div className="typing-dot" />
-                      <div className="typing-dot" />
-                      <div className="typing-dot" />
+                    <div className="flex items-center gap-3 text-gray-400">
+                      <Loader2 size={16} className="animate-spin" />
+                      <span className="text-sm">Dusunuyor...</span>
                     </div>
                   </div>
                 </div>
@@ -258,7 +403,6 @@ export function ChatPage() {
           )}
         </div>
 
-        {/* Input Area */}
         <div className="p-4" style={{ background: 'rgb(12, 12, 12)' }}>
           <div className="chat-container">
             <div
@@ -286,16 +430,18 @@ export function ChatPage() {
               <button
                 onClick={handleSend}
                 disabled={!input.trim() || isLoading || isStreaming}
-                className="p-2 rounded-lg transition-all disabled:opacity-30"
+                className="p-2.5 rounded-xl transition-all disabled:opacity-30 hover:scale-105 active:scale-95"
                 style={{
-                  background: input.trim() ? '#14b8a6' : 'rgb(50, 50, 50)',
-                  color: 'white'
+                  background: input.trim() ? 'linear-gradient(135deg, #f97316, #ea580c)' : 'rgb(50, 50, 50)',
+                  color: 'white',
+                  boxShadow: input.trim() ? '0 4px 12px rgba(249, 115, 22, 0.3)' : 'none'
                 }}
               >
                 <ArrowUp size={18} />
               </button>
             </div>
-            <p className="text-xs text-center mt-2" style={{ color: 'rgb(115, 115, 115)' }}>
+            <p className="text-xs text-center mt-2 flex items-center justify-center gap-1" style={{ color: 'rgb(115, 115, 115)' }}>
+              <Sparkles size={12} className="text-orange-500" />
               Cortex Confluence dokumanlarinizi kullanarak yanitlar uretir
             </p>
           </div>
@@ -319,15 +465,15 @@ function SessionItem({
   return (
     <div
       onClick={onClick}
-      className="group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all"
+      className="group flex items-center gap-2 px-3 py-2.5 rounded-xl cursor-pointer transition-all"
       style={{
-        background: isActive ? 'rgba(20, 184, 166, 0.15)' : 'transparent',
-        color: isActive ? '#14b8a6' : 'rgb(163, 163, 163)'
+        background: isActive ? 'rgba(249, 115, 22, 0.15)' : 'transparent',
+        color: isActive ? '#f97316' : 'rgb(163, 163, 163)'
       }}
     >
       <MessageSquare size={16} className="shrink-0 opacity-60" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate" style={{ color: isActive ? '#14b8a6' : 'rgb(236, 236, 236)' }}>
+        <p className="text-sm font-medium truncate" style={{ color: isActive ? '#f97316' : 'rgb(236, 236, 236)' }}>
           {session.title}
         </p>
         <p className="text-xs" style={{ color: 'rgb(115, 115, 115)' }}>
@@ -336,7 +482,7 @@ function SessionItem({
       </div>
       <button
         onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 p-1 rounded transition-all hover:bg-red-500/20"
+        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg transition-all hover:bg-red-500/20"
       >
         <Trash2 size={14} className="text-red-400" />
       </button>
@@ -344,44 +490,65 @@ function SessionItem({
   )
 }
 
-function WelcomeScreen({ onSuggestionClick }: { onSuggestionClick: (text: string) => void }) {
-  const suggestions = [
-    { title: 'Proje Yapisi', desc: 'Kod organizasyonu nasil?' },
-    { title: 'API Dokumantasyonu', desc: 'Endpoint\'ler ve kullanim' },
-    { title: 'Deployment Sureci', desc: 'Production\'a nasil cikarim?' },
-    { title: 'Onboarding', desc: 'Yeni baslayanlar icin rehber' },
-  ]
-
+function WelcomeScreen({
+  starters,
+  onSuggestionClick,
+}: {
+  starters: StarterItem[]
+  onSuggestionClick: (text: string) => void
+}) {
   return (
     <div className="welcome-container">
-      <div className="welcome-logo">C</div>
+      <div className="welcome-logo">
+        <Sparkles size={32} />
+      </div>
       <h1 className="welcome-title">Cortex</h1>
       <p className="welcome-subtitle">
         Confluence dokumanlariniza AI destekli erisim. Projeler, API'ler ve surecler hakkinda her seyi sorabilirsiniz.
       </p>
       <div className="suggestion-grid">
-        {suggestions.map((item) => (
-          <button
-            key={item.title}
-            onClick={() => onSuggestionClick(item.title)}
-            className="suggestion-card"
-          >
-            <div className="suggestion-title">{item.title}</div>
-            <div className="suggestion-desc">{item.desc}</div>
-          </button>
-        ))}
+        {starters.map((item) => {
+          const IconComponent = iconMap[item.icon] || Lightbulb
+          return (
+            <button
+              key={item.title}
+              onClick={() => onSuggestionClick(item.description)}
+              className="suggestion-card group"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-orange-500/10 text-orange-400 group-hover:bg-orange-500/20 transition-colors">
+                  <IconComponent size={16} />
+                </div>
+                <div className="suggestion-title">{item.title}</div>
+              </div>
+              <div className="suggestion-desc">{item.description}</div>
+            </button>
+          )
+        })}
       </div>
     </div>
   )
 }
 
-function MessageRow({ message }: { message: Message }) {
+function MessageRow({
+  message,
+  feedback,
+  onFeedback,
+  onCopy,
+  isCopied,
+}: {
+  message: Message
+  feedback?: 'like' | 'dislike'
+  onFeedback: (feedback: 'like' | 'dislike') => void
+  onCopy: () => void
+  isCopied: boolean
+}) {
   const isUser = message.role === 'user'
 
   return (
     <div className={`message-row ${isUser ? 'user' : ''}`}>
       <div className={`message-avatar ${isUser ? 'user' : 'assistant'}`}>
-        {isUser ? 'S' : 'C'}
+        {isUser ? <User size={18} /> : <Bot size={18} />}
       </div>
       <div className={`message-bubble ${isUser ? 'user' : ''}`}>
         <div className={`message-content ${isUser ? 'user-content' : ''}`}>
@@ -392,11 +559,13 @@ function MessageRow({ message }: { message: Message }) {
           )}
         </div>
 
-        {/* Sources */}
         {!isUser && message.sources && message.sources.length > 0 && (
           <div className="message-sources">
-            <div className="sources-label">Kaynaklar</div>
-            <div>
+            <div className="sources-label">
+              <FileText size={10} className="inline mr-1" />
+              Kaynaklar
+            </div>
+            <div className="flex flex-wrap">
               {message.sources.map((source, i) => (
                 <a
                   key={i}
@@ -413,11 +582,45 @@ function MessageRow({ message }: { message: Message }) {
           </div>
         )}
 
-        {/* Stats - Minimal */}
-        {!isUser && message.stats && message.stats.duration_ms > 0 && (
-          <div className="mt-2 text-xs" style={{ color: 'rgb(115, 115, 115)' }}>
-            {(message.stats.duration_ms / 1000).toFixed(1)}s
-            {message.stats.tokens?.total > 0 && ` · ${message.stats.tokens.total} token`}
+        {!isUser && (
+          <div className="flex items-center justify-between mt-3 pt-2 border-t" style={{ borderColor: 'rgb(50, 50, 50)' }}>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => onFeedback('like')}
+                className={`feedback-btn ${feedback === 'like' ? 'active like' : ''}`}
+                title="Begendim"
+              >
+                <ThumbsUp size={14} />
+              </button>
+              <button
+                onClick={() => onFeedback('dislike')}
+                className={`feedback-btn ${feedback === 'dislike' ? 'active dislike' : ''}`}
+                title="Begenmedim"
+              >
+                <ThumbsDown size={14} />
+              </button>
+              <div className="w-px h-4 mx-1" style={{ background: 'rgb(50, 50, 50)' }} />
+              <button
+                onClick={onCopy}
+                className="feedback-btn"
+                title="Kopyala"
+              >
+                {isCopied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
+              </button>
+            </div>
+
+            {message.stats && message.stats.duration_ms > 0 && (
+              <div className="flex items-center gap-2 text-xs" style={{ color: 'rgb(115, 115, 115)' }}>
+                <Clock size={12} />
+                <span>{(message.stats.duration_ms / 1000).toFixed(1)}s</span>
+                {message.stats.tokens?.total > 0 && (
+                  <>
+                    <span>•</span>
+                    <span>{message.stats.tokens.total} token</span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

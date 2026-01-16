@@ -1,337 +1,298 @@
-# Confluence Q&A
+# Cortex
 
-Confluence dokumanlarinizi kullanarak sorulari cevaplayan AI destekli bilgi asistani.
+AI-powered knowledge assistant that answers questions using your Confluence documentation.
 
-## Ozellikler
+**Made with by [Mert Golcu](https://github.com/mgolcu00)**
 
-- **Semantik Arama**: OpenAI embeddings ve pgvector ile vektor tabanli arama
-- **AI Destekli Cevaplar**: GPT-4/GPT-5 tabanli akilli yanitlar ve kaynak gosterimi
-- **Gercek Zamanli Senkronizasyon**: Confluence Cloud ile otomatik senkronizasyon
-- **Modern UI**: React tabanli sohbet arayuzu (dark tema)
-- **Session Yonetimi**: PostgreSQL destekli kalici sohbet gecmisi
-- **Kullanim Analitikleri**: Token kullanimi, maliyet takibi ve API istatistikleri
+## Features
 
-## Hizli Baslangic
+- **Semantic Search**: Vector-based search using OpenAI embeddings and pgvector
+- **AI-Powered Answers**: Intelligent responses with GPT-4/GPT-5 and source citations
+- **Real-Time Sync**: Automatic synchronization with Confluence Cloud
+- **Modern UI**: ChatGPT-like interface with dark theme (React + Vite)
+- **Session Management**: PostgreSQL-backed persistent chat history
+- **Usage Analytics**: Token usage, cost tracking, and API statistics
+- **Customizable**: Editable agent instructions and conversation starters
 
-### 1. Gereksinimleri Kurun
+## Quick Start
 
-- Python 3.11+
-- Node.js 18+
-- PostgreSQL 15+ (pgvector extension ile)
+### Prerequisites
 
-### 2. Projeyi Indirin
+- Docker and Docker Compose (recommended)
+- Or: Python 3.11+, Node.js 18+, PostgreSQL 15+ with pgvector
 
-```bash
-git clone <repository-url>
-cd confluence-qa
-```
-
-### 3. Ortam Degiskenlerini Ayarlayin
-
-`.env.example` dosyasini `.env` olarak kopyalayip duzenleyin:
+### 1. Clone and Configure
 
 ```bash
+git clone https://github.com/mgolcu00/cortex.git
+cd cortex
+
+# Copy environment template
 cp .env.example .env
 ```
 
-`.env` dosyasini acin ve su degerleri ayarlayin:
+Edit `.env` and fill in the required values:
 
 ```env
-# OpenAI (Zorunlu)
+# OpenAI (Required)
 OPENAI_API_KEY=sk-your-api-key-here
 
-# PostgreSQL (Zorunlu)
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/confluence_qa
-
-# Confluence (Zorunlu)
-CONFLUENCE_BASE_URL=https://your-site.atlassian.net/wiki
+# Confluence (Required)
+CONFLUENCE_BASE_URL=https://yourcompany.atlassian.net/wiki
 CONFLUENCE_EMAIL=your-email@company.com
-CONFLUENCE_API_TOKEN=your-api-token
+CONFLUENCE_API_TOKEN=your-confluence-api-token
+
+# PostgreSQL (Defaults work, change if needed)
+POSTGRES_USER=cortex
+POSTGRES_PASSWORD=cortex123
+POSTGRES_DB=cortex_db
 ```
 
-### 4. Uygulamayi Baslatin
+### 2. Start with Docker
+
+```bash
+docker-compose up -d
+```
+
+Open http://localhost:8000 in your browser.
+
+### 3. Initial Setup
+
+1. Go to **Settings** page
+2. Verify configuration (green checkmarks)
+3. Click **Sync Baslat** to start indexing
+4. Wait for sync to complete
+5. Go to **Chat** and start asking questions
+
+## Installation Options
+
+### Docker (Recommended)
+
+Docker handles all dependencies automatically.
+
+```bash
+# Start services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Stop and remove all data
+docker-compose down -v
+```
+
+### Local Development
+
+#### Requirements
+
+- Python 3.11+
+- Node.js 18+
+- PostgreSQL 15+ with pgvector extension
+
+#### Database Setup
+
+Install pgvector:
+
+```bash
+# macOS
+brew install pgvector
+
+# Ubuntu/Debian
+sudo apt install postgresql-15-pgvector
+```
+
+Create database:
+
+```bash
+psql -U postgres -c "CREATE DATABASE cortex_db;"
+psql -U postgres -d cortex_db -c "CREATE EXTENSION vector;"
+```
+
+Update `.env` for local development:
+
+```env
+DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/cortex_db
+```
+
+#### Run the Application
 
 ```bash
 ./run.sh
 ```
 
-Bu komut:
-1. Python sanal ortamini olusturur
-2. Python bagimliklarini yukler
-3. Frontend'i derler (ilk calistirmada)
-4. Uygulamayi baslatir
+This script:
+1. Creates Python virtual environment
+2. Installs Python dependencies
+3. Builds frontend (first run)
+4. Starts the application
 
-Tarayicinizda http://localhost:8000 adresini acin.
+Open http://localhost:8000 in your browser.
 
-### 5. Confluence'i Senkronize Edin
-
-1. Ayarlar sayfasina gidin
-2. "Sync Baslat" butonuna tiklayin
-3. Senkronizasyonun tamamlanmasini bekleyin
-
----
-
-## Docker ile Kurulum
-
-Docker, tum bagimliliklari tek komutla ayaga kaldirir. PostgreSQL, pgvector ve uygulama otomatik olarak kurulur.
-
-### Adim 1: .env Dosyasini Hazirlayin
-
-```bash
-cp .env.example .env
-```
-
-`.env` dosyasinda su degerleri doldurun:
-
-```env
-# OpenAI API Key (zorunlu)
-OPENAI_API_KEY=sk-your-openai-api-key
-
-# Confluence Bilgileri (zorunlu)
-CONFLUENCE_BASE_URL=https://your-site.atlassian.net/wiki
-CONFLUENCE_EMAIL=your-email@company.com
-CONFLUENCE_API_TOKEN=your-confluence-api-token
-
-# PostgreSQL (Docker icin varsayilan)
-POSTGRES_USER=confluence
-POSTGRES_PASSWORD=confluence
-POSTGRES_DB=confluence_qa
-
-# Diger ayarlar varsayilan degerlerle calisir
-```
-
-> **Not**: Docker Compose `.env` dosyasini otomatik okur. Environment degiskenlerini ayri ayri girmenize gerek yok.
-
-### Adim 2: Servisleri Baslatin
-
-```bash
-docker-compose up -d
-```
-
-Bu komut:
-1. PostgreSQL + pgvector veritabanini baslatir
-2. Frontend'i derler (Node.js)
-3. Backend'i baslatir (Python/FastAPI)
-4. Tum servisleri birbirine baglar
-
-### Adim 3: Loglari Kontrol Edin
-
-```bash
-# Tum loglar
-docker-compose logs -f
-
-# Sadece uygulama loglari
-docker-compose logs -f app
-
-# Sadece veritabani loglari
-docker-compose logs -f db
-```
-
-### Adim 4: Uygulamaya Erisin
-
-Tarayicinizda http://localhost:8000 adresini acin.
-
-### Servisleri Durdurun
-
-```bash
-# Durdur (verileri koru)
-docker-compose down
-
-# Durdur ve tum verileri sil
-docker-compose down -v
-```
-
-### Docker Sorun Giderme
-
-**Build hatasi:**
-```bash
-# Cache'i temizleyip yeniden derle
-docker-compose build --no-cache
-docker-compose up -d
-```
-
-**Port kullaniliyor:**
-```bash
-# 5432 veya 8000 portu baskasi tarafindan kullaniliyorsa
-# docker-compose.yml'de portlari degistirin:
-# - "5433:5432"  # PostgreSQL
-# - "8001:8000"  # Uygulama
-```
-
-**Veritabani baglanti hatasi:**
-```bash
-# Veritabaninin hazir olmasini bekleyin
-docker-compose logs db
-# "database system is ready to accept connections" mesajini gorun
-```
-
----
-
-## Gelistirme Ortami
-
-### Backend
-
-```bash
-# Sanal ortam olustur
-python -m venv .venv
-source .venv/bin/activate
-
-# Bagimliliklari yukle
-pip install -r requirements.txt
-
-# Sunucuyu baslat (hot reload)
-uvicorn app.main:app --reload
-```
-
-### Frontend
-
-```bash
-cd frontend
-
-# Bagimliliklari yukle
-npm install
-
-# Gelistirme sunucusu (HMR)
-npm run dev
-
-# Production build
-npm run build
-```
-
----
-
-## Proje Yapisi
+## Project Structure
 
 ```
-confluence-qa/
+cortex/
 ├── app/                      # Backend (FastAPI)
 │   ├── main.py              # API endpoints
-│   ├── config.py            # Ortam degiskenleri
-│   ├── agent.py             # OpenAI Agent + Session yonetimi
+│   ├── config.py            # Environment variables
+│   ├── agent.py             # OpenAI Agent + Session management
 │   ├── db/
-│   │   ├── database.py      # PostgreSQL baglantisi
-│   │   ├── models.py        # SQLAlchemy modelleri
-│   │   └── vector_store.py  # pgvector islemleri
+│   │   ├── database.py      # PostgreSQL connection
+│   │   ├── models.py        # SQLAlchemy models
+│   │   └── vector_store.py  # pgvector operations
 │   ├── confluence/
-│   │   └── client.py        # Confluence API istemcisi
+│   │   └── client.py        # Confluence API client
 │   └── ingest/
-│       ├── sync.py          # Senkronizasyon
-│       ├── chunker.py       # Metin parcalama
+│       ├── sync.py          # Synchronization
+│       ├── chunker.py       # Text chunking
 │       └── embedder.py      # OpenAI embeddings
 │
 ├── frontend/                 # Frontend (React + Vite)
 │   ├── src/
-│   │   ├── pages/           # Sayfa bilesenleri
-│   │   ├── components/      # UI bilesenleri
+│   │   ├── pages/           # Page components
+│   │   ├── components/      # UI components
 │   │   └── lib/             # API, store, utils
 │   └── package.json
 │
-├── docker-compose.yml        # Docker servisleri
-├── Dockerfile               # Uygulama image'i
-├── run.sh                   # Gelistirme baslat scripti
-├── requirements.txt         # Python bagimliliklari
-├── .env.example             # Ornek ortam degiskenleri
+├── docker-compose.yml        # Docker services
+├── Dockerfile               # Application image
+├── run.sh                   # Development script
+├── requirements.txt         # Python dependencies
+├── .env.example             # Environment template
 └── README.md
 ```
 
----
-
-## API Dokumantasyonu
+## API Reference
 
 ### Chat
 
-| Method | Endpoint | Aciklama |
-|--------|----------|----------|
-| POST | `/chat` | Mesaj gonder, AI yaniti al |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/chat` | Send message, get AI response |
 
 ### Sessions
 
-| Method | Endpoint | Aciklama |
-|--------|----------|----------|
-| GET | `/sessions` | Tum oturumlari listele |
-| GET | `/sessions/{id}` | Oturum detayi |
-| DELETE | `/sessions/{id}` | Oturumu sil |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/sessions` | List all sessions |
+| GET | `/sessions/{id}` | Get session details |
+| DELETE | `/sessions/{id}` | Delete session |
 
-### Veritabani
+### Database
 
-| Method | Endpoint | Aciklama |
-|--------|----------|----------|
-| GET | `/api/db/pages` | Indekslenmis sayfalari listele |
-| GET | `/api/db/pages/{id}` | Sayfa detayi |
-| GET | `/api/db/spaces` | Confluence space'lerini listele |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/db/pages` | List indexed pages |
+| GET | `/api/db/pages/{id}` | Get page details |
+| GET | `/api/db/spaces` | List Confluence spaces |
 
-### Senkronizasyon
+### Sync
 
-| Method | Endpoint | Aciklama |
-|--------|----------|----------|
-| POST | `/sync/run` | Senkronizasyon baslat |
-| GET | `/sync/status` | Senkronizasyon durumu |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/sync/run` | Start synchronization |
+| GET | `/sync/status` | Get sync status |
 
-### Ayarlar
+### Settings
 
-| Method | Endpoint | Aciklama |
-|--------|----------|----------|
-| GET | `/api/config` | Mevcut konfigurasyon |
-| GET | `/api/instructions` | Agent talimatlari |
-| PUT | `/api/instructions` | Talimatlari guncelle |
-| GET | `/api/stats` | Kullanim istatistikleri |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/config` | Get current configuration |
+| GET | `/api/instructions` | Get agent instructions |
+| PUT | `/api/instructions` | Update instructions |
+| GET | `/api/starters` | Get conversation starters |
+| PUT | `/api/starters` | Update starters |
+| GET | `/api/stats` | Get usage statistics |
 
----
+## Configuration Reference
 
-## Konfigurasyon
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `OPENAI_API_KEY` | Yes | - | OpenAI API key |
+| `CONFLUENCE_BASE_URL` | Yes | - | Confluence URL (https://xxx.atlassian.net/wiki) |
+| `CONFLUENCE_EMAIL` | Yes | - | Confluence email |
+| `CONFLUENCE_API_TOKEN` | Yes | - | Confluence API token |
+| `POSTGRES_USER` | No | cortex | PostgreSQL username |
+| `POSTGRES_PASSWORD` | No | cortex123 | PostgreSQL password |
+| `POSTGRES_DB` | No | cortex_db | PostgreSQL database name |
+| `DATABASE_URL` | No* | - | PostgreSQL URL for local development |
+| `CHAT_MODEL` | No | gpt-4o | Chat model |
+| `EMBEDDING_MODEL` | No | text-embedding-3-small | Embedding model |
+| `SYNC_INTERVAL_MINUTES` | No | 60 | Auto-sync interval (minutes) |
+| `LOG_LEVEL` | No | INFO | Log level |
 
-### Ortam Degiskenleri
+> *`DATABASE_URL` is auto-generated for Docker. Only needed for local development.
 
-| Degisken | Zorunlu | Varsayilan | Aciklama |
-|----------|---------|------------|----------|
-| `OPENAI_API_KEY` | Evet | - | OpenAI API anahtari |
-| `DATABASE_URL` | Evet | - | PostgreSQL baglanti URL'i |
-| `CONFLUENCE_BASE_URL` | Evet | - | Confluence URL (https://xxx.atlassian.net/wiki) |
-| `CONFLUENCE_EMAIL` | Evet | - | Confluence email |
-| `CONFLUENCE_API_TOKEN` | Evet | - | Confluence API token |
-| `CHAT_MODEL` | Hayir | gpt-4o | Chat modeli |
-| `EMBEDDING_MODEL` | Hayir | text-embedding-3-small | Embedding modeli |
-| `SYNC_INTERVAL_MINUTES` | Hayir | 60 | Otomatik sync araligi |
-| `LOG_LEVEL` | Hayir | INFO | Log seviyesi |
+## Troubleshooting
 
-### Agent Talimatlari
+### Docker Issues
 
-Ayarlar sayfasindan agent'in davranisini ozellestirin:
-- Ne zaman arama yapacagi
-- Cevap formati ve tonu
-- Kaynak gosterim sekli
+**Build error:**
+```bash
+docker-compose build --no-cache
+docker-compose up -d
+```
 
----
+**Port in use:**
+```bash
+# Change ports in docker-compose.yml:
+# - "5433:5432"  # PostgreSQL
+# - "8001:8000"  # Application
+```
 
-## Sorun Giderme
+**Database connection error:**
+```bash
+docker-compose logs db
+# Wait for "database system is ready to accept connections"
+```
 
-### pgvector Extension Bulunamadi
+### Confluence Issues
+
+**API 401 Error:**
+1. Check your API token: https://id.atlassian.com/manage/api-tokens
+2. Verify email matches your Atlassian account
+3. Ensure `CONFLUENCE_BASE_URL` ends with `/wiki`
+
+**Empty Search Results:**
+1. Run full synchronization first
+2. Ensure pages have text content
+3. Check sync status in Settings page
+
+### pgvector Issues (Local)
 
 ```bash
 # macOS
 brew install pgvector
-psql confluence_qa -c "CREATE EXTENSION vector;"
+psql cortex_db -c "CREATE EXTENSION vector;"
 
 # Ubuntu/Debian
 sudo apt install postgresql-15-pgvector
-psql confluence_qa -c "CREATE EXTENSION vector;"
+psql cortex_db -c "CREATE EXTENSION vector;"
 ```
 
-### Confluence API 401 Hatasi
+## Getting Help
 
-1. API token'inizi kontrol edin: https://id.atlassian.com/manage/api-tokens
-2. Email'in Atlassian hesabinizla eslestigi dogrulayin
-3. BASE_URL'nin `/wiki` ile bittiginden emin olun
+If you encounter any issues or have questions:
 
-### Bos Arama Sonuclari
+1. Check the [Troubleshooting](#troubleshooting) section above
+2. Search existing [GitHub Issues](https://github.com/mgolcu00/cortex/issues)
+3. Open a new issue with:
+   - Description of the problem
+   - Steps to reproduce
+   - Error messages (if any)
+   - Your environment (OS, Docker version, etc.)
 
-1. Once tam senkronizasyon yapin
-2. Sayfalarin metin icerigi oldugundan emin olun
-3. Ayarlar'dan senkronizasyon durumunu kontrol edin
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+MIT License
 
 ---
 
-## Lisans
-
-MIT License
-# cortex
+**Cortex v2.0** - Made with by [Mert Golcu](https://github.com/mgolcu00)
